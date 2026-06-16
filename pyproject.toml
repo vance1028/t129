@@ -1,0 +1,15 @@
+[project]
+name = "a11y-checker"
+version = "0.1.0"
+description = "离线信息无障碍自动化检测工具"
+requires-python = ">=3.8"
+dependencies = [
+    "beautifulsoup4>=4.9.0",
+]
+
+[project.scripts]
+a11y-checker = "a11y_checker.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

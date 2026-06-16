@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>首页 - 示例站点</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .low-contrast {
+            color: #ccc;
+            background: #fff;
+        }
+        .bad-text {
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h3>欢迎来到我们的网站</h3>
+        <img src="images/logo.png">
+        <img src="images/banner.jpg" alt="">
+    </div>
+
+    <div class="nav">
+        <a href="about.html">点击这里</a>
+        <a href="contact.html">更多</a>
+        <a href="#section1">跳转到第一部分</a>
+        <a href="#nonexistent">不存在的锚点</a>
+        <a href="missing.html">不存在的页面</a>
+        <a href="http://example.com">外部链接</a>
+        <a href="javascript:void(0)"><img src="images/icon.png"></a>
+    </div>
+
+    <div class="content">
+        <h1>主要内容</h1>
+        <p class="low-contrast">这是一段低对比度的文字，颜色太浅了看不清。</p>
+
+        <form action="/submit" method="post">
+            <div>
+                <input type="text" name="username">
+            </div>
+            <div>
+                <label>密码</label>
+                <input type="password" name="password">
+            </div>
+            <div>
+                <select name="city">
+                    <option>北京</option>
+                    <option>上海</option>
+                </select>
+            </div>
+            <div>
+                <textarea name="message"></textarea>
+            </div>
+            <button type="submit">提交</button>
+        </form>
+
+        <h3>三级标题直接跳级</h3>
+        <p>这里是一些内容。</p>
+
+        <div role="button" class="fake-button">
+            这是个假按钮
+        </div>
+
+        <p aria-label="这是一个段落">
+            这是一个普通段落，但加了多余的aria-label。
+        </p>
+
+        <div aria-unknownattr="something">
+            有未知的ARIA属性
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2024 示例站点</p>
+        <a href="#">点击这里返回顶部</a>
+    </div>
+</body>
+</html>

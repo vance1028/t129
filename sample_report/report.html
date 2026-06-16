@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信息无障碍检测报告</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { font-size: 28px; margin-bottom: 10px; color: #1a1a2e; }
+        h2 { font-size: 22px; margin: 30px 0 15px; color: #1a1a2e; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; }
+        h3 { font-size: 18px; margin: 20px 0 12px; color: #333; }
+        .summary {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .summary-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+        .stat-card {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 32px; font-weight: bold; }
+        .stat-card .label { font-size: 14px; opacity: 0.85; }
+        .stat-pages { background: #e3f2fd; color: #1565c0; }
+        .stat-errors { background: #ffebee; color: #c62828; }
+        .stat-warnings { background: #fff3e0; color: #e65100; }
+        .stat-info { background: #e8f5e9; color: #2e7d32; }
+        .meta {
+            color: #666;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .nav-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .nav-tab.active {
+            color: #1976d2;
+            border-bottom-color: #1976d2;
+            font-weight: 600;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .rule-section, .page-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+        .rule-section h3, .page-section h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .rule-id {
+            font-size: 12px;
+            color: #999;
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .count {
+            font-size: 13px;
+            background: #f0f0f0;
+            padding: 2px 10px;
+            border-radius: 12px;
+            color: #666;
+        }
+        .counts { display: flex; gap: 8px; margin-left: auto; }
+        .counts span { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+        .error-count { background: #ffebee; color: #c62828; }
+        .warning-count { background: #fff3e0; color: #e65100; }
+        .info-count { background: #e8f5e9; color: #2e7d32; }
+        .issues-list { margin-top: 12px; }
+        .issue {
+            border-left: 4px solid #ccc;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            background: #fafafa;
+            border-radius: 0 6px 6px 0;
+        }
+        .issue.severity-error { border-left-color: #e53935; background: #fff5f5; }
+        .issue.severity-warning { border-left-color: #fb8c00; background: #fffaf0; }
+        .issue.severity-info { border-left-color: #43a047; background: #f6fbf6; }
+        .issue-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .severity-badge {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: white;
+        }
+        .severity-error .severity-badge { background: #e53935; }
+        .severity-warning .severity-badge { background: #fb8c00; }
+        .severity-info .severity-badge { background: #43a047; }
+        .message { font-weight: 500; }
+        .issue-location {
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .issue-location .file { font-family: monospace; }
+        .snippet {
+            font-size: 12px;
+            background: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            color: #555;
+        }
+        .no-issues { color: #2e7d32; font-style: italic; padding: 10px 0; }
+        .page-issues { margin-top: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>信息无障碍检测报告</h1>
+        <div class="summary">
+            <div class="meta">
+                扫描目录：D:\solo1\projects\t129\sample_site<br>
+                生成时间：2026-06-16 23:47:54
+            </div>
+            <div class="summary-stats">
+                <div class="stat-card stat-pages">
+                    <div class="number">3</div>
+                    <div class="label">页面总数</div>
+                </div>
+                <div class="stat-card stat-errors">
+                    <div class="number">16</div>
+                    <div class="label">错误</div>
+                </div>
+                <div class="stat-card stat-warnings">
+                    <div class="number">7</div>
+                    <div class="label">警告</div>
+                </div>
+                <div class="stat-card stat-info">
+                    <div class="number">0</div>
+                    <div class="label">提示</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('by-rule', this)">按规则分类</button>
+            <button class="nav-tab" onclick="switchTab('by-page', this)">按页面分类</button>
+        </div>
+
+        <div id="by-rule" class="tab-content active">
+            <h2>按规则分类</h2>
+            
+            <div class="rule-section severity-error">
+                <h3>文字和背景颜色对比度不足 <span class="rule-id">[color-contrast]</span> <span class="count">4 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 3.25:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>contact.html</span><span class='line'>第 36 行</span><span class='element'>p.form-text</span></div>
+                <pre class='snippet'>&lt;p class=&quot;form-text&quot;&gt;灰色文字，对比度可能不够&lt;/p&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 1.61:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 36 行</span><span class='element'>p.low-contrast</span></div>
+                <pre class='snippet'>&lt;p class=&quot;low-contrast&quot;&gt;这是一段低对比度的文字，颜色太浅了看不清。&lt;/p&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 3.98:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 61 行</span><span class='element'>div.fake-button</span></div>
+                <pre class='snippet'>&lt;div class=&quot;fake-button&quot; role=&quot;button&quot;&gt;
+            这是个假按钮
+        &lt;/div&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 2.85:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 74 行</span><span class='element'>div.footer</span></div>
+                <pre class='snippet'>&lt;div class=&quot;footer&quot;&gt;
+&lt;p&gt;© 2024 示例站点&lt;/p&gt;
+&lt;a href=&quot;#&quot;&gt;点击这里返回顶部&lt;/a&gt;
+&lt;/div&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-error">
+                <h3>站内死链 <span class="rule-id">[dead-link]</span> <span class="count">4 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">站内链接失效: missing-page.html (目标文件不存在: missing-page.html)</span>
+                </div>
+                <div class="issue-location"><span class='file'>about.html</span><span class='line'>第 24 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;missing-page.html&quot;&gt;死链测试&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">页内锚点 '#section1' 目标不存在</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 27 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;#section1&quot;&gt;跳转到第一部分&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">页内锚点 '#nonexistent' 目标不存在</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 28 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;#nonexistent&quot;&gt;不存在的锚点&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">站内链接失效: missing.html (目标文件不存在: missing.html)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 29 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;missing.html&quot;&gt;不存在的页面&lt;/a&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-error">
+                <h3>表单控件没有关联的label <span class="rule-id">[form-label]</span> <span class="count">4 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;input&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 40 行</span><span class='element'>input</span></div>
+                <pre class='snippet'>&lt;input name=&quot;username&quot; type=&quot;text&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;input&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 44 行</span><span class='element'>input</span></div>
+                <pre class='snippet'>&lt;input name=&quot;password&quot; type=&quot;password&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;select&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 47 行</span><span class='element'>select</span></div>
+                <pre class='snippet'>&lt;select name=&quot;city&quot;&gt;
+&lt;option&gt;北京&lt;/option&gt;
+&lt;option&gt;上海&lt;/option&gt;
+&lt;/select&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;textarea&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 53 行</span><span class='element'>textarea</span></div>
+                <pre class='snippet'>&lt;textarea name=&quot;message&quot;&gt;&lt;/textarea&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-warning">
+                <h3>标题层级乱跳 <span class="rule-id">[heading-order]</span> <span class="count">3 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">页面第一个标题是 h2，应该以 h1 开始</span>
+                </div>
+                <div class="issue-location"><span class='file'>about.html</span><span class='line'>第 9 行</span><span class='element'>h2</span></div>
+                <pre class='snippet'>&lt;h2&gt;关于我们&lt;/h2&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">标题层级从 h1 跳到 h3，应该按顺序递增</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 58 行</span><span class='element'>h3</span></div>
+                <pre class='snippet'>&lt;h3&gt;三级标题直接跳级&lt;/h3&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">页面第一个标题是 h3，应该以 h1 开始</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 19 行</span><span class='element'>h3</span></div>
+                <pre class='snippet'>&lt;h3&gt;欢迎来到我们的网站&lt;/h3&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-error">
+                <h3>图片缺少alt文本 <span class="rule-id">[image-alt]</span> <span class="count">3 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片缺少alt属性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 20 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img src=&quot;images/logo.png&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片alt属性为空，且未标记为装饰性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 21 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img alt=&quot;&quot; src=&quot;images/banner.jpg&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片缺少alt属性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 31 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img src=&quot;images/icon.png&quot;/&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-warning">
+                <h3>链接文字含糊不达意 <span class="rule-id">[link-text]</span> <span class="count">3 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接文字 '点击这里' 含糊不清，不能清楚表达链接目标</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 25 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;about.html&quot;&gt;点击这里&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接文字 '更多' 含糊不清，不能清楚表达链接目标</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 26 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;contact.html&quot;&gt;更多&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接没有可访问的文本内容</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 31 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;javascript:void(0)&quot;&gt;&lt;img src=&quot;images/icon.png&quot;/&gt;&lt;/a&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-warning">
+                <h3>ARIA属性用错或冗余 <span class="rule-id">[aria]</span> <span class="count">1 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">未知的ARIA属性: 'aria-unknownattr'</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 69 行</span><span class='element'>div</span></div>
+                <pre class='snippet'>&lt;div aria-unknownattr=&quot;something&quot;&gt;
+            有未知的ARIA属性
+        &lt;/div&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="rule-section severity-error">
+                <h3>页面没声明lang <span class="rule-id">[html-lang]</span> <span class="count">1 个问题</span></h3>
+                <div class="issues-list">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">&lt;html&gt; 标签缺少 lang 属性，应声明页面语言</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 2 行</span><span class='element'>html</span></div>
+                <pre class='snippet'>&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;/&gt;
+&lt;title&gt;首页 - 示例站点&lt;/title&gt;
+&lt;link href=&quot;css/style.css&quot; rel=&quot;stylesheet&quot;/&gt;
+&lt;style&gt;
+        .low-contrast {
+            color: #ccc;
+            background: #fff;
+    </pre>
+            </div>
+            
+                </div>
+            </div>
+            
+        </div>
+
+        <div id="by-page" class="tab-content">
+            <h2>按页面分类</h2>
+            
+            <div class="page-section">
+                <h3>index.html
+                    <span class="counts">
+                        <span class="error-count">14 错误</span>
+                        <span class="warning-count">6 警告</span>
+                        
+                    </span>
+                </h3>
+                <div class="page-issues">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片缺少alt属性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 20 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img src=&quot;images/logo.png&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片alt属性为空，且未标记为装饰性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 21 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img alt=&quot;&quot; src=&quot;images/banner.jpg&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">图片缺少alt属性</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 31 行</span><span class='element'>img</span></div>
+                <pre class='snippet'>&lt;img src=&quot;images/icon.png&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;input&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 40 行</span><span class='element'>input</span></div>
+                <pre class='snippet'>&lt;input name=&quot;username&quot; type=&quot;text&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;input&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 44 行</span><span class='element'>input</span></div>
+                <pre class='snippet'>&lt;input name=&quot;password&quot; type=&quot;password&quot;/&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;select&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 47 行</span><span class='element'>select</span></div>
+                <pre class='snippet'>&lt;select name=&quot;city&quot;&gt;
+&lt;option&gt;北京&lt;/option&gt;
+&lt;option&gt;上海&lt;/option&gt;
+&lt;/select&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">表单控件 &lt;textarea&gt; 没有关联的label</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 53 行</span><span class='element'>textarea</span></div>
+                <pre class='snippet'>&lt;textarea name=&quot;message&quot;&gt;&lt;/textarea&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">标题层级从 h1 跳到 h3，应该按顺序递增</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 58 行</span><span class='element'>h3</span></div>
+                <pre class='snippet'>&lt;h3&gt;三级标题直接跳级&lt;/h3&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">页面第一个标题是 h3，应该以 h1 开始</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 19 行</span><span class='element'>h3</span></div>
+                <pre class='snippet'>&lt;h3&gt;欢迎来到我们的网站&lt;/h3&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">&lt;html&gt; 标签缺少 lang 属性，应声明页面语言</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 2 行</span><span class='element'>html</span></div>
+                <pre class='snippet'>&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;/&gt;
+&lt;title&gt;首页 - 示例站点&lt;/title&gt;
+&lt;link href=&quot;css/style.css&quot; rel=&quot;stylesheet&quot;/&gt;
+&lt;style&gt;
+        .low-contrast {
+            color: #ccc;
+            background: #fff;
+    </pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接文字 '点击这里' 含糊不清，不能清楚表达链接目标</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 25 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;about.html&quot;&gt;点击这里&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接文字 '更多' 含糊不清，不能清楚表达链接目标</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 26 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;contact.html&quot;&gt;更多&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">链接没有可访问的文本内容</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 31 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;javascript:void(0)&quot;&gt;&lt;img src=&quot;images/icon.png&quot;/&gt;&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 1.61:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 36 行</span><span class='element'>p.low-contrast</span></div>
+                <pre class='snippet'>&lt;p class=&quot;low-contrast&quot;&gt;这是一段低对比度的文字，颜色太浅了看不清。&lt;/p&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 3.98:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 61 行</span><span class='element'>div.fake-button</span></div>
+                <pre class='snippet'>&lt;div class=&quot;fake-button&quot; role=&quot;button&quot;&gt;
+            这是个假按钮
+        &lt;/div&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 2.85:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 74 行</span><span class='element'>div.footer</span></div>
+                <pre class='snippet'>&lt;div class=&quot;footer&quot;&gt;
+&lt;p&gt;© 2024 示例站点&lt;/p&gt;
+&lt;a href=&quot;#&quot;&gt;点击这里返回顶部&lt;/a&gt;
+&lt;/div&gt;</pre>
+            </div>
+            
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">未知的ARIA属性: 'aria-unknownattr'</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 69 行</span><span class='element'>div</span></div>
+                <pre class='snippet'>&lt;div aria-unknownattr=&quot;something&quot;&gt;
+            有未知的ARIA属性
+        &lt;/div&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">页内锚点 '#section1' 目标不存在</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 27 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;#section1&quot;&gt;跳转到第一部分&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">页内锚点 '#nonexistent' 目标不存在</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 28 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;#nonexistent&quot;&gt;不存在的锚点&lt;/a&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">站内链接失效: missing.html (目标文件不存在: missing.html)</span>
+                </div>
+                <div class="issue-location"><span class='file'>index.html</span><span class='line'>第 29 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;missing.html&quot;&gt;不存在的页面&lt;/a&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="page-section">
+                <h3>about.html
+                    <span class="counts">
+                        <span class="error-count">1 错误</span>
+                        <span class="warning-count">1 警告</span>
+                        
+                    </span>
+                </h3>
+                <div class="page-issues">
+                    
+            <div class="issue severity-warning">
+                <div class="issue-header">
+                    <span class="severity-badge">warning</span>
+                    <span class="message">页面第一个标题是 h2，应该以 h1 开始</span>
+                </div>
+                <div class="issue-location"><span class='file'>about.html</span><span class='line'>第 9 行</span><span class='element'>h2</span></div>
+                <pre class='snippet'>&lt;h2&gt;关于我们&lt;/h2&gt;</pre>
+            </div>
+            
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">站内链接失效: missing-page.html (目标文件不存在: missing-page.html)</span>
+                </div>
+                <div class="issue-location"><span class='file'>about.html</span><span class='line'>第 24 行</span><span class='element'>a</span></div>
+                <pre class='snippet'>&lt;a href=&quot;missing-page.html&quot;&gt;死链测试&lt;/a&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+            <div class="page-section">
+                <h3>contact.html
+                    <span class="counts">
+                        <span class="error-count">1 错误</span>
+                        
+                        
+                    </span>
+                </h3>
+                <div class="page-issues">
+                    
+            <div class="issue severity-error">
+                <div class="issue-header">
+                    <span class="severity-badge">error</span>
+                    <span class="message">文本颜色对比度不足 (当前 3.25:1，AA标准 4.5:1)</span>
+                </div>
+                <div class="issue-location"><span class='file'>contact.html</span><span class='line'>第 36 行</span><span class='element'>p.form-text</span></div>
+                <pre class='snippet'>&lt;p class=&quot;form-text&quot;&gt;灰色文字，对比度可能不够&lt;/p&gt;</pre>
+            </div>
+            
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>
